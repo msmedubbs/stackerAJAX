@@ -6,6 +6,13 @@ $(document).ready( function() {
 		var tags = $(this).find("input[name='tags']").val();
 		getUnanswered(tags);
 	});
+	$('.inspiration-getter').submit( function(event){
+		// zero out results if previous search has run
+		$('.results').html('');
+		// get the value of the tags the user submitted
+		var tags = $(this).find("input[name='answerers']").val();
+		getAnswerers(tags);
+	});
 });
 
 // this function takes the question object returned by StackOverflow 
@@ -37,6 +44,26 @@ var showQuestion = function(question) {
 							'</p>' +
  							'<p>Reputation: ' + question.owner.reputation + '</p>'
 	);
+
+	return result;
+};
+
+var showAnswerer = function(answerer) {
+	// clone our result template code
+	var result = $('.templates .inspiration').clone();
+	
+	// Set the answerer name properties in result
+	var answererElem = result.find('.answerer-name a');
+	answererElem.attr('href', answerer.user.link);
+	answererElem.text(answerer.user.display_name);
+
+	// set the post count property in result
+	var count = result.find('.post-count');
+	count.text(answerer.post_count);
+
+	// set the score property in result
+	var scored = result.find('.score');
+	scored.text(answerer.score);
 
 	return result;
 };
@@ -88,5 +115,29 @@ var getUnanswered = function(tags) {
 	});
 };
 
+var getAnswerers = function(tags) {
+	// the parameters we need to pass in our request to StackOverflow's API
+	var request = {site: 'stackoverflow'};
+	
+	var result = $.ajax({
+		url: "http://api.stackexchange.com/2.2/tags/"+tags+"/top-answerers/all_time",
+		data: request,
+		dataType: "jsonp",
+		type: "GET",
+		})
+	.done(function(result){
+		var searchResults = showSearchResults(tags, result.items.length);
 
+		$('.search-results').html(searchResults);
+
+		$.each(result.items, function(i, item) {
+			var answerer = showAnswerer(item);
+			$('.results').append(answerer);
+		});
+	})
+	.fail(function(jqXHR, error, errorThrown){
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});
+};
 
